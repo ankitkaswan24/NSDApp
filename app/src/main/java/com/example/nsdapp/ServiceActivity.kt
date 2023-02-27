@@ -16,6 +16,10 @@ import java.io.InputStreamReader
 import java.net.InetAddress
 import java.net.Socket
 
+/**
+ * This activity have been commented as the process have been moved to Separate dedicated Service class,
+ * but keeping it for any references.
+ */
 
 class ServiceActivity : AppCompatActivity() {
 
@@ -23,8 +27,6 @@ class ServiceActivity : AppCompatActivity() {
 //    private lateinit var nsdManager: NsdManager
 //    private lateinit var SERVICE_TYPE: String
 //    private lateinit var mService: NsdServiceInfo
-
-
 
 //    private var SERVICE_NAME = "Server Device"
 //    private val SERVICE_TYPE = "_http._tcp."
