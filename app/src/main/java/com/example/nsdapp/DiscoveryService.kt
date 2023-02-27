@@ -20,7 +20,6 @@ class DiscoveryService : Service() {
 
     private var SERVICE_NAME = "Server Device"
     private val SERVICE_TYPE = "_tms._tcp"
-    private var serviceStatusListener: ServiceStatusListener? = null
     private var mNsdManager: NsdManager? = null
 
     override fun onCreate() {
@@ -34,10 +33,6 @@ class DiscoveryService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-
-       intent?.let {
-           serviceStatusListener = it.getParcelableExtra("callback")
-       }
 
         val notificationIntent = Intent(this, LandingActivity::class.java)
         val flag =
