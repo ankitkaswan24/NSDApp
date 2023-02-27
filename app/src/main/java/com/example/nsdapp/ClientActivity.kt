@@ -33,19 +33,31 @@ class ClientActivity : AppCompatActivity() {
     }
 
     override fun onPause() {
-        mNsdManager?.stopServiceDiscovery(mDiscoveryListener)
+        try {
+            mNsdManager?.stopServiceDiscovery(mDiscoveryListener)
+        } catch (_: Exception) {
+
+        }
         super.onPause()
     }
 
     override fun onResume() {
         super.onResume()
+        try{
         mNsdManager?.discoverServices(
             SERVICE_TYPE, NsdManager.PROTOCOL_DNS_SD, mDiscoveryListener
         )
+        } catch (_: Exception){
+
+        }
     }
 
     override fun onDestroy() {
-        mNsdManager?.stopServiceDiscovery(mDiscoveryListener)
+        try {
+            mNsdManager?.stopServiceDiscovery(mDiscoveryListener)
+        } catch (_: Exception) {
+
+        }
         super.onDestroy()
     }
 
@@ -61,7 +73,9 @@ class ClientActivity : AppCompatActivity() {
             Log.d(TAG, "Host = " + service.serviceName)
             Log.d(TAG, "port = " + service.port.toString())
 
-            findViewById<TextView>(R.id.service_tv).text = service.serviceName
+            runOnUiThread {
+                findViewById<TextView>(R.id.service_tv).text = service.serviceName
+            }
 
             if (service.serviceType != SERVICE_TYPE) {
                 // Service type is the string containing the protocol and
@@ -80,6 +94,9 @@ class ClientActivity : AppCompatActivity() {
         override fun onServiceLost(service: NsdServiceInfo) {
             // When the network service is no longer available.
             Log.e(TAG, "service lost$service")
+            runOnUiThread {
+                findViewById<TextView>(R.id.service_tv).text = "service lost${service.serviceName}"
+            }
         }
 
         override fun onDiscoveryStopped(serviceType: String) {
@@ -89,6 +106,9 @@ class ClientActivity : AppCompatActivity() {
         override fun onStartDiscoveryFailed(serviceType: String, errorCode: Int) {
             Log.e(TAG, "Discovery failed: Error code:$errorCode")
             mNsdManager?.stopServiceDiscovery(this)
+            runOnUiThread {
+                findViewById<TextView>(R.id.service_tv).text = "Discovery failed: Error code:$errorCode"
+            }
         }
 
         override fun onStopDiscoveryFailed(serviceType: String, errorCode: Int) {

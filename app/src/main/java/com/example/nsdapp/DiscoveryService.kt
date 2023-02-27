@@ -4,7 +4,6 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
-import android.content.ComponentName
 import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
@@ -14,18 +13,14 @@ import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
-import java.io.BufferedReader
-import java.io.IOException
-import java.io.InputStream
-import java.io.InputStreamReader
-import java.net.InetAddress
-import java.net.Socket
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 
 
 class DiscoveryService : Service() {
 
     private var SERVICE_NAME = "Server Device"
     private val SERVICE_TYPE = "_tms._tcp"
+    private var serviceStatusListener: ServiceStatusListener? = null
     private var mNsdManager: NsdManager? = null
 
     override fun onCreate() {
@@ -39,8 +34,16 @@ class DiscoveryService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val notificationIntent = Intent(this, ServiceActivity::class.java)
-        val pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0)
+
+       intent?.let {
+           serviceStatusListener = it.getParcelableExtra("callback")
+       }
+
+        val notificationIntent = Intent(this, LandingActivity::class.java)
+        val flag =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            else PendingIntent.FLAG_UPDATE_CURRENT
+        val pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, flag)
 
         val notification = NotificationCompat.Builder(this, "Service")
             .setContentTitle("Discovery Service is running")
@@ -49,7 +52,8 @@ class DiscoveryService : Service() {
             .setContentIntent(pendingIntent)
             .build()
 
-        val mNotificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val mNotificationManager =
+            getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 "Service",
@@ -81,6 +85,9 @@ class DiscoveryService : Service() {
         override fun onServiceRegistered(NsdServiceInfo: NsdServiceInfo) {
             val mServiceName = NsdServiceInfo.serviceName
             SERVICE_NAME = mServiceName
+            sendServiceBroadcast(true)
+//            val intent = Intent("NSDServiceData")
+//            LocalBroadcastManager.getInstance(this@DiscoveryService).sendBroadcast(intent)
             Log.d(ContentValues.TAG, "Registered name : $mServiceName")
             Log.d(ContentValues.TAG, "Registered specs : ${NsdServiceInfo.host}")
 //            receiveData(NsdServiceInfo.host, NsdServiceInfo.port)
@@ -89,7 +96,9 @@ class DiscoveryService : Service() {
         override fun onRegistrationFailed(
             serviceInfo: NsdServiceInfo,
             errorCode: Int
-        ) {}
+        ) {
+            sendServiceBroadcast(false)
+        }
 
         override fun onServiceUnregistered(serviceInfo: NsdServiceInfo) {
             // Service has been unregistered. This only happens when you
@@ -99,12 +108,33 @@ class DiscoveryService : Service() {
                 ContentValues.TAG,
                 "Service Unregistered : " + serviceInfo.serviceName
             )
+            sendServiceBroadcast(false)
         }
 
         override fun onUnregistrationFailed(
             serviceInfo: NsdServiceInfo,
             errorCode: Int
-        ) {}
+        ) {
+            sendServiceBroadcast(false)
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        try {
+            mNsdManager?.unregisterService(mRegistrationListener)
+        } catch(_: Exception){
+
+        }
+    }
+
+    /**
+     * Send broadcast method
+     */
+    fun sendServiceBroadcast(isServiceRunning: Boolean) {
+        val intent = Intent("serviceStatusAction")
+        intent.putExtra("serviceStatus", isServiceRunning)
+        LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
     }
 
 //    fun receiveData(host: InetAddress, port:Int){
